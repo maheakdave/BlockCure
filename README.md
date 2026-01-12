@@ -33,8 +33,3 @@ TO setup project locally simply run:
 cd SRC
 docker compose up -d --build
 ```
-
-
-
-
-To setup the project simply run -> `docker compose up --build -d`

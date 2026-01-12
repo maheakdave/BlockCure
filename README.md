@@ -6,15 +6,34 @@ Paper reference -> [BlockCure](https://www.taylorfrancis.com/chapters/edit/10.12
 
 Folder Structure is as: 
 
-- BACKEND
-- FRONTEND
-- DB
+SRC
+  - FRONTED
+      - src
+           - components
+           - Hooks
+           - types
+  - DB
+  - BACKEND
+      - SERVICES
+      - UTILS
 
 TODO:
 
-- [x] Database and setup for the application.
-- [x] Assistant setup for the application.
-- [] Backend setup
+- [x] Backend setup.
+- [x] Database Setup.
+- [ ] Completing UI.
+- [ ] Integration of layers.
+- [ ] Adding Queue-Worker System using Celery.
+- [ ] Using triton inference server for deidentifier-api.
+- [ ] Integrating Consensus mechanism for the blockchain structure.
+
+
+TO setup project locally simply run:
+```
+cd SRC
+docker compose up -d --build
+```
+
 
 
 

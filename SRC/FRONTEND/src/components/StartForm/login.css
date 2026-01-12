@@ -1,0 +1,36 @@
+label{
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+select{
+    background-color: lightblue;
+    width:6em;
+}
+div{
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+form{
+    display: flex;
+    border:solid black;
+    width:20em;
+    border-radius: 10px;
+    padding:2em;
+    font-size: large;
+    user-select: none;
+    flex-direction: column;
+    font-family: monospace;
+}
+input{
+    height: 2em;
+}
+input[type=submit]{
+    width:5em;
+    margin-top:2em;
+    height:2em;
+    background-color: wheat;
+    font-family: monospace;
+    margin-right: 1em;
+    cursor: pointer;
+}

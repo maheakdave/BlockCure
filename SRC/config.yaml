@@ -1,0 +1,10 @@
+deidentifier_api:
+  host: localhost
+  port: 8001
+
+llm_server:
+  host: localhost
+  port: 8002
+
+database:
+   

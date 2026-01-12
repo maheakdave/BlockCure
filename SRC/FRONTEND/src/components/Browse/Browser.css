@@ -1,0 +1,122 @@
+.browse-container {
+	padding: 12px;
+	font-family: monospace;
+	color: #222;
+}
+
+.search-wrap {
+	margin-bottom: 8px;
+}
+
+.search-input {
+	width: 100%;
+	padding: 8px;
+	box-sizing: border-box;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	outline: none;
+	font-size: 14px;
+}
+
+.search-input:focus {
+	border-color: lightblue;
+	box-shadow: 0 0 0 3px rgba(173, 216, 230, 0.15);
+}
+
+.records-list {
+	margin-top: 4px;
+}
+
+.record-card {
+	border: 1px solid #ddd;
+	padding: 10px;
+	margin-bottom: 8px;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.diagnosis {
+	font-size: 16px;
+}
+
+.record-id {
+	font-size: 12px;
+	color: #666;
+}
+
+.details {
+	margin-top: 8px;
+	line-height: 1.4;
+	color: #333;
+}
+
+/* Table styles */
+.records-table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #fff;
+}
+
+.records-table thead th {
+	text-align: left;
+	padding: 10px;
+	border-bottom: 2px solid #eee;
+	background: #fafafa;
+}
+
+.records-table td {
+	padding: 10px;
+	border-bottom: 1px solid #f1f1f1;
+	vertical-align: top;
+}
+
+.cell-snippet {
+	color: #444;
+	font-size: 13px;
+}
+
+.record-row:hover {
+	background: #fcfcfc;
+}
+
+.expanded-row td {
+	background: #fffef8;
+}
+
+.pagination {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 12px;
+}
+
+.page-info {
+	font-size: 13px;
+	color: #444;
+}
+
+.btn {
+	border: 1px solid aliceblue;
+	margin: 0 4px;
+	padding: 6px 10px;
+	border-radius: 8px;
+	background-color: wheat;
+	cursor: pointer;
+	font-family: monospace;
+}
+
+.btn:hover:not(:disabled) {
+	background-color: lightsalmon;
+	border-color: lightblue;
+}
+
+.btn:disabled {
+	opacity: 0.6;
+	cursor: default;
+}

@@ -1,0 +1,18 @@
+version = 1
+revision = 1
+requires-python = ">=3.11"
+
+[[package]]
+name = "blockcure"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "blockcure" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "blockcure", virtual = "." }]

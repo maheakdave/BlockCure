@@ -7,6 +7,7 @@ import os
 
 from dspy import LM,ReAct,Example,Prediction
 from chromadb import PersistentClient
+from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 from typing import Optional
 
@@ -15,11 +16,11 @@ from typing import Optional
 
 load_dotenv()
 
-curr_path = os.path.dirname(os.path.abspath(__file__))
-# vectorstore_path = os.path.join(curr_path,r"D:\projects\blockcure\chroma_persist")
+vector_store_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"../../../chroma_persist")
 
 
-chroma_client = PersistentClient(path=r"D:\projects\blockcure\chroma_persist")
+chroma_client = PersistentClient(path=vector_store_path)
+# emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
 collection = chroma_client.get_collection(name="blockcure_collection")
 print(collection.count())
 exit()
@@ -192,27 +193,30 @@ def metric(gold: Example,
     feedback_text = f"Score: {score}. {justification}".strip()
     return ScoreWithFeedback(score=score, feedback=feedback_text)
 
-assistant = AssistantAgent()
-# print(assistant("What are the common symptoms of diabetes?"))
 
 
-# dataset = dspy.load_dataset("dataset.json", split="test")
-dataset = []
-with open(r"D:\projects\blockcure\SRC\DB\dataset.json", "r") as f:
-    dataset_json = json.load(f)
-    
-    for i, item in enumerate(dataset):
-        dataset.append(dspy.Example(question=item["diagnosis"], answer=item["treatment"]))
-print(f"Loaded {len(dataset)} examples for evaluation.")
-exit()
-evaluator = Evaluate(
-    devset=dataset,
-    num_threads=8,
-    display_progress=True,
-)
+if __name__ == "__main__":
+    assistant = AssistantAgent()
+    # print(assistant("What are the common symptoms of diabetes?"))
 
-evaluation_result = evaluator(
-    assistant,
-    metric=metric,
-)
-print("Evaluation Result:", evaluation_result)
+
+    # dataset = dspy.load_dataset("dataset.json", split="test")
+    dataset = []
+    with open(r"D:\projects\blockcure\SRC\DB\dataset.json", "r") as f:
+        dataset_json = json.load(f)
+        
+        for i, item in enumerate(dataset):
+            dataset.append(dspy.Example(question=item["diagnosis"], answer=item["treatment"]))
+    print(f"Loaded {len(dataset)} examples for evaluation.")
+    exit()
+    evaluator = Evaluate(
+        devset=dataset,
+        num_threads=8,
+        display_progress=True,
+    )
+
+    evaluation_result = evaluator(
+        assistant,
+        metric=metric,
+    )
+    print("Evaluation Result:", evaluation_result)

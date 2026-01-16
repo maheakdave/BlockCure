@@ -1,7 +1,8 @@
 from fastapi import FastAPI,WebSocket,WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 import threading
-from pydantic import BaseModel,ValidationError
-from typing import Literal
+from pydantic import BaseModel,ValidationError,Field,TypeAdapter
+from typing import Union,Literal
 from websockets.asyncio.client import connect
 import json
 from datetime import datetime
@@ -9,7 +10,8 @@ from hashlib import sha256
 import uvicorn
 import httpx
 from dataclasses import dataclass
-from log import StructlogMiddleware,get_logger
+from .log import StructlogMiddleware,get_logger
+from .database import lifespan
 
 class Transaction():
     def __init__(self,origin:str,content:object) -> None:
@@ -47,18 +49,29 @@ class Blockchain():
         prev_hash = self.curr_block.currhash
         self.curr_block = Block()
         self.curr_block.prevhash = prev_hash
-
-class PeerMessage(BaseModel):
-        type:str = Literal['broadcast','direct']
-        origin:str
-        id:str
-        diagnostics:str
-        symptoms:str
-        treatment:str
-
-        class Config:
-            extra = 'forbid'
             
+class BaseMessage(BaseModel):
+    origin: str
+    message_id: str = Field(default_factory=lambda: sha256(str(datetime.now()).encode()).hexdigest()[:12])
+
+class TransactionPayload(BaseMessage):
+    type: Literal["transaction"]
+    id: str
+    diagnostics: str
+    symptoms: str
+    treatment: str
+
+class BlockPayload(BaseMessage):
+    type: Literal["block_proposal"]
+    block_data: dict # Or a specific Block model
+    signature: str
+
+class QueryPayload(BaseMessage):
+    type: Literal["query_request"]
+    target_record_id: str          
+
+PeerMessage = Union[TransactionPayload, BlockPayload, QueryPayload]
+
 class Peer():
     def __init__(self,location:str,port:int,peers:list[str]) -> None:
         self.blockchain = Blockchain()
@@ -68,11 +81,27 @@ class Peer():
         self._app = FastAPI(
             docs_url=None, 
             redoc_url=None, 
-            openapi_url=None
+            openapi_url=None,
+            lifespan=lifespan,
         )
         self._app.add_middleware(StructlogMiddleware)
+
+        # Will modify allowed origins later
+        self._app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
         self.http_client = httpx.AsyncClient()
         self.logger = get_logger().bind(peer_location=self.location)
+        self.dispatch_map = {
+            "transaction":self._handle_transaction,
+            "block_proposal":self._handle_block_proposal,
+            "query_request":self._handle_query_request,
+        }
 
         @self._app.websocket(f"/ws/{self.location}")
         async def websocket_endpoint(websocket: WebSocket)->None:
@@ -80,38 +109,38 @@ class Peer():
                 await websocket.accept()
                 try:
                     while True:
-                            data = await websocket.receive_json()
+                            raw_data = await websocket.receive_json()
                             try:
-                                message = PeerMessage.model_validate(data)
+                                message = TypeAdapter(PeerMessage).validate_python(raw_data)
+                                handler = self.dispatch_map.get(message.type)
+                                
+                                if handler:
+                                    await handler(message)
+                                else:
+                                    self.logger.warning(f"No handler for type: {message.type}")
+
                             except ValidationError as e:
                                 self.logger.warning(f"Invalid message received: {e}")
                                 await websocket.close(code=1003)
                                 return
-                            if data:
-                                if data['type'] == 'broadcast':
-                                    
-                                    self.logger.info(f"Received broadcast data: {data}|| Logging-location: {self.location}")
-
-                                    await self.http_client.post(f"http://:8010/api",data=data)
-                                    
-                                    self.blockchain.curr_block.addTransaction(
-                                        Transaction(
-                                                    origin=message.origin,
-                                                    content={
-                                                        "id":message.id
-                                                        ,"diagnosis":message.diagnostics
-                                                        ,"symptoms":message.symptoms    
-                                                        ,"treatment":message.treatment
-                                                    }))
-                                else:
-                                    data['type'] = 'broadcast'
-                                    for peer_uri in self.peers:
-                                        
-                                        async with connect(peer_uri) as websocket:
-                                            await websocket.send(json.dumps(data,sort_keys=True))
+                            
+                            except ValidationError as e:
+                                self.logger.error(f"Schema mismatch: {e.json()}")
+                                continue
 
                 except WebSocketDisconnect:
                     self.logger.info("WebSocket disconnected, Successfull Transmission")
+    
+    async def _handle_transaction(self,message:PeerMessage)->None:
+        self.logger.info("Adding new transaction to mempool")
+        self.blockchain.curr_block.addTransaction(Transaction(message.origin, message.model_dump()))
+        await self.broadcast_to_peers()
+    
+    async def broadcast_to_peers(self,message:PeerMessage)->None:
+        for peer_uri in self.peers:
+            async with connect(peer_uri) as websocket:
+                await websocket.send(json.dumps(message.model_dump(),sort_keys=True))
+
     def run(self):
         uvicorn.run(self._app,port=self.port)
 

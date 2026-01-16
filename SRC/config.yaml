@@ -1,10 +1,13 @@
-deidentifier_api:
+frontend:
+  port: 8080
   host: localhost
-  port: 8001
 
-llm_server:
+Peer2Peer:
   host: localhost
-  port: 8002
-
-database:
-   
+  Nodes:
+    - location: "Kolkata"
+      port: 8001
+    - location: "Mumbai"
+      port: 8002
+    - location: "Delhi"
+      port: 8003

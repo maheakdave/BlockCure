@@ -32,8 +32,5 @@ TO setup project locally simply run:
 ```
 cd SRC
 docker compose up -d --build
-<<<<<<< HEAD
+
 ```
-=======
-```
->>>>>>> 5b4775c (Updating Backend)

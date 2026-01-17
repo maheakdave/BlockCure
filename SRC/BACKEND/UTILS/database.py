@@ -1,12 +1,10 @@
 import os
-from sqlalchemy import create_engine,Engine
-from sqlalchemy.orm import sessionmaker
 from logging import Logger
 from contextlib import asynccontextmanager
 from fastapi import FastAPI,Request
+from sqlalchemy.ext.asyncio import AsyncEngine,create_async_engine,async_sessionmaker
 
-
-def get_engine(logger:Logger)->Engine:
+def get_engine(logger:Logger)->AsyncEngine:
 
     """
     Return an instance of databse engine.
@@ -17,9 +15,9 @@ def get_engine(logger:Logger)->Engine:
     password = os.getenv("DB_PASSWORD")
     db_name = os.getenv("DB_NAME")
     host_name = os.getenv("DB_HOST","db")
-    url = f"postgresql+psycopg2://{user}:{password}@{host_name}:{port}/{db_name}"
+    url = f"postgresql+asyncpg://{user}:{password}@{host_name}:{port}/{db_name}"
 
-    engine = create_engine(url)
+    engine = create_async_engine(url)
     return engine
 
 @asynccontextmanager
@@ -31,20 +29,8 @@ async def lifespan(app: FastAPI):
     engine = get_engine(app.logger)
     
     app.state.db_engine = engine
-    app.state.SessionLocal = sessionmaker(bind=engine)
+    app.state.SessionLocal = async_sessionmaker(bind=engine)
 
     yield 
 
     engine.dispose()
-
-def get_db(request: Request):
-    """
-    Dependency that provides a database session for each request.
-    """
-
-    session = request.app.state.SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-

@@ -39,8 +39,26 @@ services:
     image: adminer
     restart: always
     ports:
-      - 8080:8080
+      - 8081:8081
     networks:
       - backend
+    
+  Backend:
+    build:
+      context: .
+    networks:
+      - backend
+  
+  Frontend:
+    build:
+      context: ./FRONTEND
+    ports:
+      - 8080:8080
+    depends_on:
+      - Backend
+    networks:
+      - frontend
+
 networks:
   backend:
+  frontend:

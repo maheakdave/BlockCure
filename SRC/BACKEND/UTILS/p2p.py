@@ -12,6 +12,9 @@ import httpx
 from dataclasses import dataclass
 from .log import StructlogMiddleware,get_logger
 from .database import lifespan
+from sqlalchemy import select
+from sqlalchemy.orm import DeclarativeBase,mapped_column,Mapped
+from sqlalchemy.types import String
 
 class Transaction():
     def __init__(self,origin:str,content:object) -> None:
@@ -66,11 +69,31 @@ class BlockPayload(BaseMessage):
     block_data: dict # Or a specific Block model
     signature: str
 
-class QueryPayload(BaseMessage):
+class FetchRecords(BaseMessage):
     type: Literal["query_request"]
-    target_record_id: str          
+    num_records:int = 5 
+    page:int = 1         
 
-PeerMessage = Union[TransactionPayload, BlockPayload, QueryPayload]
+PeerMessage = Union[TransactionPayload, BlockPayload, FetchRecords]
+
+class Base(DeclarativeBase):
+    pass
+
+class Record(Base):
+    __tablename__ = "transactions"  
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    diagnosis: Mapped[str] = mapped_column(String)
+    symptoms: Mapped[str] = mapped_column(String)
+    treatment: Mapped[str] = mapped_column(String)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "diagnosis": self.diagnosis,
+            "symptoms": self.symptoms,
+            "treatment": self.treatment
+        }
 
 class Peer():
     def __init__(self,location:str,port:int,peers:list[str]) -> None:
@@ -132,14 +155,30 @@ class Peer():
                     self.logger.info("WebSocket disconnected, Successfull Transmission")
     
     async def _handle_transaction(self,message:PeerMessage)->None:
-        self.logger.info("Adding new transaction to mempool")
+        self.logger.info("Adding new transaction from %s",message.origin)
         self.blockchain.curr_block.addTransaction(Transaction(message.origin, message.model_dump()))
-        await self.broadcast_to_peers()
+        await self.broadcast_to_peers(message=message)
     
     async def broadcast_to_peers(self,message:PeerMessage)->None:
         for peer_uri in self.peers:
             async with connect(peer_uri) as websocket:
                 await websocket.send(json.dumps(message.model_dump(),sort_keys=True))
+
+    async def _handle_fetch_records(self,message:FetchRecords)->None:
+        async_session_factory = self._app.state.SessionLocal
+        offset_value = (message.page - 1) * message.batch_size
+
+        async with async_session_factory() as session:
+            stmt = select(Record).order_by(Record.id).limit(message.num_records).offset(offset_value)
+            result = await session.execute(stmt)
+            db_records = result.scalars().all()
+            payload = [rec.to_dict() for rec in db_records]
+            self.logger.info("Successfully retrieved %d records", len(payload))
+
+    async def send_to_origin(self,origin:str,payload:object)->None:
+        origin_uri = f"ws://{origin}/ws/{self.location}"
+        async with connect(origin_uri) as websocket:
+            await websocket.send(json.dumps(payload,sort_keys=True))
 
     def run(self):
         uvicorn.run(self._app,port=self.port)

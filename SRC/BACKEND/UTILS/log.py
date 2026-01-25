@@ -8,12 +8,9 @@ import time
 def configure_logging()->None:
     structlog.configure(
         processors=[
-            # 1. Add a timestamp
             structlog.processors.TimeStamper(fmt="iso"),
-            # 2. Add log level (info, error, etc)
             structlog.processors.add_log_level,
-            # 3. If in dev, use pretty colors; if in prod, use JSON
-            structlog.dev.ConsoleRenderer() # Switch to JSONRenderer() for production
+            structlog.dev.ConsoleRenderer() 
         ],
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
